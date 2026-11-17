@@ -1,0 +1,875 @@
+/* Storm — popups inspired by the JetBrains "New UI". Colours come from the active VS Code theme. */
+
+:root {
+  --bg: var(--vscode-quickInput-background, var(--vscode-editorWidget-background));
+  --fg: var(--vscode-foreground);
+  --muted: var(--vscode-descriptionForeground);
+  --border: var(--vscode-widget-border, var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.35)));
+  --sep: rgba(128, 128, 128, 0.22);
+  --sel: var(--vscode-quickInputList-focusBackground, var(--vscode-list-activeSelectionBackground));
+  --sel-fg: var(--vscode-quickInputList-focusForeground, var(--vscode-list-activeSelectionForeground));
+  --hover: var(--vscode-list-hoverBackground);
+  --accent: var(--vscode-focusBorder);
+  --input-bg: var(--vscode-input-background);
+  --input-fg: var(--vscode-input-foreground);
+  --hl-fg: var(--vscode-list-highlightForeground, #e8a33d);
+  --match-bg: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+  --match-cur: var(--vscode-editor-findMatchBackground, rgba(81, 92, 106, 0.8));
+  --match-cur-border: var(--vscode-editor-findMatchBorder, transparent);
+  --code-bg: var(--vscode-editor-background);
+  --code-fg: var(--vscode-editor-foreground);
+  --curline: var(--vscode-editor-lineHighlightBackground, rgba(128, 128, 128, 0.12));
+  --gutter: var(--vscode-editorLineNumber-foreground);
+  --code-font: var(--vscode-editor-font-family, Consolas, 'JetBrains Mono', monospace);
+  --code-size: var(--vscode-editor-font-size, 13px);
+  --radius: 10px;
+  --row-h: 26px;
+
+  /* syntax: JetBrains New UI Dark */
+  --t-k: #cf8e6d;
+  --t-s: #6aab73;
+  --t-c: #7a7e85;
+  --t-n: #2aacb8;
+  --t-v: #c77dbb;
+  --t-f: #56a8f5;
+  --t-y: #bcbec4;
+  --t-t: #d5b778;
+  --t-a: #bababa;
+}
+
+body.vscode-light {
+  /* syntax: IntelliJ Light */
+  --t-k: #0033b3;
+  --t-s: #067d17;
+  --t-c: #8c8c8c;
+  --t-n: #1750eb;
+  --t-v: #871094;
+  --t-f: #00627a;
+  --t-y: #000000;
+  --t-t: #0033b3;
+  --t-a: #174ad4;
+  --sep: rgba(0, 0, 0, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: var(--fg);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  background: var(--vscode-editor-background);
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3vh 16px 16px;
+}
+
+.popup {
+  width: 100%;
+  max-width: 1080px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.popup.se {
+  max-width: 860px;
+  max-height: calc(100% - 4vh);
+}
+
+.popup.find {
+  height: 100%;
+}
+
+.spacer {
+  flex: 1;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ---------- shared bits ---------- */
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fg);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chk input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--sep);
+  border-bottom: 1px solid var(--sep);
+  background: var(--bg);
+  position: relative;
+}
+
+.field + .field {
+  border-top: none;
+}
+
+.field.error textarea,
+.field.error input {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.ficon-svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.field input,
+.field textarea {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--input-fg, var(--fg));
+  font-family: var(--code-font);
+  font-size: calc(var(--code-size) + 1px);
+  line-height: 22px;
+  padding: 0;
+  resize: none;
+}
+
+.field textarea {
+  height: 22px;
+  overflow-y: auto;
+  white-space: pre;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+  font-family: var(--vscode-font-family);
+}
+
+.qerror {
+  position: absolute;
+  right: 120px;
+  top: 9px;
+  color: var(--vscode-errorForeground, #f14c4c);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.toggles {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+
+.tgl,
+.icon-btn {
+  min-width: 26px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--code-font);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tgl:hover,
+.icon-btn:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.tgl.on,
+.icon-btn.on {
+  background: var(--vscode-inputOption-activeBackground, rgba(53, 116, 240, 0.25));
+  border-color: var(--vscode-inputOption-activeBorder, var(--accent));
+  color: var(--vscode-inputOption-activeForeground, var(--fg));
+}
+
+.btn {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 5px;
+  border: 1px solid var(--vscode-button-border, var(--border));
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--fg));
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--hover));
+}
+
+.btn.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: transparent;
+}
+
+.btn.primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.btn.small {
+  height: 22px;
+  padding: 0 8px;
+}
+
+.list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  outline: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: var(--row-h);
+  padding: 0 12px;
+  margin: 0 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.row.sel {
+  background: var(--sel);
+  color: var(--sel-fg, var(--fg));
+}
+
+.row .name {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row .extra {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row .right {
+  flex: none;
+  max-width: 40%;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.row.sel .extra,
+.row.sel .right,
+.row.sel .floc {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.row.lib .name {
+  font-style: italic;
+}
+
+.row.lib .right {
+  font-style: italic;
+}
+
+.hl {
+  color: var(--hl-fg);
+  font-weight: 600;
+}
+
+.row.sel .hl {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mhl {
+  background: var(--match-bg);
+  border-radius: 2px;
+}
+
+.lineno {
+  color: var(--muted);
+}
+
+.code-text {
+  font-family: var(--code-font);
+  font-size: var(--code-size);
+}
+
+.empty {
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty a {
+  color: var(--vscode-textLink-foreground);
+}
+
+.group-hdr {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px 12px 0;
+  padding: 2px 6px 0;
+  border-top: 1px solid var(--sep);
+  font-size: 11px;
+  color: var(--muted);
+  height: 18px;
+}
+
+.group-hdr:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
+.more .name {
+  color: var(--vscode-textLink-foreground);
+}
+
+/* file type badge */
+.ficon {
+  --c: #8c8c8c;
+  flex: none;
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--c);
+  color: #fff;
+  font: 600 8px/14px var(--vscode-font-family);
+  text-align: center;
+  letter-spacing: -0.2px;
+  text-transform: lowercase;
+  overflow: hidden;
+}
+
+/* symbol badge (JetBrains style round letter icons) */
+.sicon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #fff;
+  font: 700 10px/16px var(--vscode-font-family);
+  text-align: center;
+}
+
+.s-c { background: #3592c4; }
+.s-i { background: #58a35e; }
+.s-t { background: #c99331; }
+.s-e { background: #9b6bd6; }
+.s-f { background: #e06c75; border-radius: 4px; }
+.s-m { background: #db5c5c; }
+.s-p { background: #c7883a; border-radius: 4px; }
+.s-k { background: #8d70c9; border-radius: 4px; }
+.s-n { background: #6e7781; border-radius: 3px; }
+
+.aicon {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--sep);
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 34px;
+}
+
+.footer .hint b {
+  font-weight: 600;
+  color: var(--fg);
+  opacity: 0.85;
+}
+
+.indexing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.spin {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -1px;
+  margin-right: 5px;
+  opacity: 0.8;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Search Everywhere ---------- */
+
+.se-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 0;
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+}
+
+.tab {
+  padding: 5px 10px 7px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  user-select: none;
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab.active {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+
+.se-field {
+  margin-top: 0;
+}
+
+.se .list {
+  min-height: 60px;
+  padding: 4px 0;
+  flex: 1;
+}
+
+/* ---------- Find in Files ---------- */
+
+.hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 6px;
+}
+
+.hdr .title {
+  font-weight: 600;
+}
+
+.hdr .stats {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.hdr .stats .time {
+  margin-left: 8px;
+  opacity: 0.7;
+}
+
+.mask {
+  width: 150px;
+  height: 22px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--input-fg);
+  padding: 0 6px;
+  font-family: var(--code-font);
+  font-size: 12px;
+}
+
+.mask:disabled {
+  opacity: 0.5;
+}
+
+.scope {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 7px;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.seg button {
+  border: none;
+  background: transparent;
+  padding: 3px 11px;
+  cursor: pointer;
+  color: var(--fg);
+}
+
+.seg button + button {
+  border-left: 1px solid var(--border);
+}
+
+.seg button:hover {
+  background: var(--hover);
+}
+
+.seg button.active {
+  background: var(--sel);
+  color: var(--sel-fg, var(--fg));
+}
+
+.scope-extra {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+}
+
+.scope-extra input,
+.scope-extra select {
+  height: 24px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: 4px;
+  background: var(--vscode-dropdown-background, var(--input-bg));
+  color: var(--vscode-dropdown-foreground, var(--input-fg));
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.scope-extra .dir {
+  flex: 1;
+  max-width: 520px;
+  font-family: var(--code-font);
+}
+
+.results {
+  flex: 1;
+  min-height: 80px;
+  padding: 4px 0;
+}
+
+.frow .ftext {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
+.frow .floc {
+  flex: none;
+  color: var(--muted);
+  max-width: 35%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 12px;
+}
+
+.del {
+  background: rgba(225, 80, 80, 0.25);
+  text-decoration: line-through;
+  border-radius: 2px;
+}
+
+.ins {
+  background: rgba(80, 200, 120, 0.25);
+  border-radius: 2px;
+  margin-left: 1px;
+}
+
+.splitter {
+  height: 5px;
+  cursor: row-resize;
+  border-top: 1px solid var(--sep);
+  background: transparent;
+  flex: none;
+}
+
+.splitter:hover {
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+.preview {
+  flex: none;
+  height: 42%;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  background: var(--code-bg);
+}
+
+.preview-hdr {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--sep);
+  min-height: 24px;
+  background: var(--bg);
+}
+
+.preview-hdr .ppath {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code {
+  flex: 1;
+  overflow: auto;
+  font-family: var(--code-font);
+  font-size: var(--code-size);
+  line-height: 1.45;
+  color: var(--code-fg);
+  padding: 4px 0;
+}
+
+.cl {
+  display: flex;
+  white-space: pre;
+  min-height: 1.45em;
+}
+
+.cl.cur {
+  /* The usage line: clearly tinted with the accent colour, with a marker bar in the gutter. */
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.cl.cur .gut {
+  color: var(--vscode-editorLineNumber-activeForeground, var(--fg));
+}
+
+.gut {
+  flex: none;
+  color: var(--gutter);
+  padding: 0 14px 0 10px;
+  text-align: right;
+  user-select: none;
+  white-space: pre;
+}
+
+.src {
+  padding-right: 20px;
+}
+
+.mk {
+  background: var(--match-bg);
+  border-radius: 2px;
+}
+
+.mk.cur-mk {
+  background: var(--match-cur);
+  outline: 1px solid var(--match-cur-border);
+}
+
+.t-k,
+.t-kc { color: var(--t-k); }
+.t-s { color: var(--t-s); }
+.t-c { color: var(--t-c); font-style: italic; }
+.t-n { color: var(--t-n); }
+.t-v { color: var(--t-v); }
+.t-f { color: var(--t-f); }
+.t-y { color: var(--t-y); }
+.t-t { color: var(--t-t); }
+.t-a { color: var(--t-a); }
+
+body.vscode-high-contrast.palette-jetbrains .t-k,
+body.vscode-high-contrast.palette-jetbrains .t-kc,
+body.vscode-high-contrast.palette-jetbrains .t-s,
+body.vscode-high-contrast.palette-jetbrains .t-c,
+body.vscode-high-contrast.palette-jetbrains .t-n,
+body.vscode-high-contrast.palette-jetbrains .t-v,
+body.vscode-high-contrast.palette-jetbrains .t-f,
+body.vscode-high-contrast.palette-jetbrains .t-y,
+body.vscode-high-contrast.palette-jetbrains .t-t,
+body.vscode-high-contrast.palette-jetbrains .t-a {
+  color: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
+
+/* ---------- File mask combo box ---------- */
+
+.combo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.combo .mask {
+  padding-right: 22px;
+}
+
+.combo-btn {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 20px;
+  border: none;
+  border-radius: 0 3px 3px 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.combo-btn:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.combo-list {
+  position: absolute;
+  top: calc(100% + 3px);
+  right: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 360px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10;
+  padding: 4px 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.combo-list[hidden] {
+  display: none;
+}
+
+.combo-sep {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.combo-sep + .combo-item {
+  margin-top: 1px;
+}
+
+.combo-item + .combo-sep {
+  margin-top: 4px;
+  border-top: 1px solid var(--sep);
+  padding-top: 6px;
+}
+
+.combo-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px 0 6px;
+  margin: 0 4px;
+  border-radius: 4px;
+  font-family: var(--code-font);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.combo-item .check {
+  width: 14px;
+  text-align: center;
+  color: var(--accent);
+}
+
+.combo-item.active {
+  background: var(--sel);
+  color: var(--sel-fg, var(--fg));
+}
+
+.combo-item.active .check {
+  color: inherit;
+}
+
+/* Colours of the active VS Code theme (set by the extension host as --tt-* variables).
+   A category the theme does not colour falls back to the editor foreground. */
+body.palette-theme .t-k { color: var(--tt-k, inherit); font-style: var(--tt-k-fs, normal); font-weight: var(--tt-k-fw, normal); }
+body.palette-theme .t-kc { color: var(--tt-kc, inherit); font-style: var(--tt-kc-fs, normal); font-weight: var(--tt-kc-fw, normal); }
+body.palette-theme .t-s { color: var(--tt-s, inherit); font-style: var(--tt-s-fs, normal); font-weight: var(--tt-s-fw, normal); }
+body.palette-theme .t-c { color: var(--tt-c, inherit); font-style: var(--tt-c-fs, normal); font-weight: var(--tt-c-fw, normal); }
+body.palette-theme .t-n { color: var(--tt-n, inherit); font-style: var(--tt-n-fs, normal); font-weight: var(--tt-n-fw, normal); }
+body.palette-theme .t-v { color: var(--tt-v, inherit); font-style: var(--tt-v-fs, normal); font-weight: var(--tt-v-fw, normal); }
+body.palette-theme .t-f { color: var(--tt-f, inherit); font-style: var(--tt-f-fs, normal); font-weight: var(--tt-f-fw, normal); }
+body.palette-theme .t-y { color: var(--tt-y, inherit); font-style: var(--tt-y-fs, normal); font-weight: var(--tt-y-fw, normal); }
+body.palette-theme .t-t { color: var(--tt-t, inherit); font-style: var(--tt-t-fs, normal); font-weight: var(--tt-t-fw, normal); }
+body.palette-theme .t-a { color: var(--tt-a, inherit); font-style: var(--tt-a-fs, normal); font-weight: var(--tt-a-fw, normal); }

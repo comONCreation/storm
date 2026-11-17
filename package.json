@@ -1,0 +1,460 @@
+{
+  "name": "storm",
+  "displayName": "Storm — PhpStorm experience for VS Code",
+  "description": "PhpStorm / JetBrains features in VS Code: Search Everywhere, Find in Files and Replace in Files popups backed by a persistent trigram index, the Find window, and the Storm Dark theme with JetBrains syntax colours.",
+  "version": "0.3.0",
+  "publisher": "storm",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Themes"
+  ],
+  "keywords": [
+    "search",
+    "find in files",
+    "search everywhere",
+    "phpstorm",
+    "jetbrains",
+    "goto file",
+    "goto class",
+    "theme",
+    "dark",
+    "islands dark",
+    "syntax highlighting"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "storm.searchEverywhere",
+        "title": "Search Everywhere",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.gotoClass",
+        "title": "Go to Class…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.gotoFile",
+        "title": "Go to File…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.gotoSymbol",
+        "title": "Go to Symbol…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.findAction",
+        "title": "Find Action…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.searchText",
+        "title": "Search Text Everywhere",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.recentFiles",
+        "title": "Recent Files",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.findInFiles",
+        "title": "Find in Files…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.replaceInFiles",
+        "title": "Replace in Files…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.findInDirectory",
+        "title": "Find in Files…",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.applyKeymap",
+        "title": "Resolve Shortcut Conflicts (make Storm shortcuts win)",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.rebuildIndex",
+        "title": "Invalidate Caches and Rebuild Index",
+        "category": "Storm"
+      },
+      {
+        "command": "storm.nextOccurrence",
+        "title": "Next Occurrence",
+        "category": "Storm",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "storm.previousOccurrence",
+        "title": "Previous Occurrence",
+        "category": "Storm",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "storm.rerunFind",
+        "title": "Rerun",
+        "category": "Storm",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "storm.editFind",
+        "title": "Edit Search…",
+        "category": "Storm",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "storm.groupByDirectory",
+        "title": "Group by Directory",
+        "category": "Storm",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "storm.ungroupByDirectory",
+        "title": "Flatten (no directory grouping)",
+        "category": "Storm",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "storm.clearFindResults",
+        "title": "Clear Results",
+        "category": "Storm",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "storm.excludeFromResults",
+        "title": "Exclude",
+        "category": "Storm",
+        "icon": "$(close)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "storm.searchEverywhere",
+        "key": "shift shift"
+      },
+      {
+        "command": "storm.gotoClass",
+        "key": "ctrl+n",
+        "mac": "cmd+o",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "storm.gotoFile",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+o",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "storm.gotoSymbol",
+        "key": "ctrl+alt+shift+n",
+        "mac": "cmd+alt+o",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "storm.findAction",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "storm.recentFiles",
+        "key": "ctrl+e",
+        "mac": "cmd+e",
+        "when": "!terminalFocus && !inQuickOpen"
+      },
+      {
+        "command": "storm.findInFiles",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "storm.replaceInFiles",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "!terminalFocus"
+      },
+      {
+        "command": "storm.nextOccurrence",
+        "key": "ctrl+alt+down",
+        "mac": "cmd+alt+down",
+        "when": "storm.hasFindResults && !suggestWidgetVisible"
+      },
+      {
+        "command": "storm.previousOccurrence",
+        "key": "ctrl+alt+up",
+        "mac": "cmd+alt+up",
+        "when": "storm.hasFindResults && !suggestWidgetVisible"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "storm.findInDirectory",
+          "group": "4_search@0"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "storm.findInFiles",
+          "when": "editorHasSelection",
+          "group": "navigation@99"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "storm.rerunFind",
+          "when": "view == storm.findResults && storm.hasFindResults",
+          "group": "navigation@1"
+        },
+        {
+          "command": "storm.editFind",
+          "when": "view == storm.findResults && storm.hasFindResults",
+          "group": "navigation@2"
+        },
+        {
+          "command": "storm.previousOccurrence",
+          "when": "view == storm.findResults && storm.hasFindResults",
+          "group": "navigation@3"
+        },
+        {
+          "command": "storm.nextOccurrence",
+          "when": "view == storm.findResults && storm.hasFindResults",
+          "group": "navigation@4"
+        },
+        {
+          "command": "storm.groupByDirectory",
+          "when": "view == storm.findResults && !storm.groupByDirectory",
+          "group": "navigation@5"
+        },
+        {
+          "command": "storm.ungroupByDirectory",
+          "when": "view == storm.findResults && storm.groupByDirectory",
+          "group": "navigation@5"
+        },
+        {
+          "command": "storm.clearFindResults",
+          "when": "view == storm.findResults && storm.hasFindResults",
+          "group": "navigation@6"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "storm.excludeFromResults",
+          "when": "view == storm.findResults && viewItem =~ /^storm(File|Dir|Line)$/",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "storm.findInDirectory",
+          "when": "false"
+        },
+        {
+          "command": "storm.excludeFromResults",
+          "when": "false"
+        },
+        {
+          "command": "storm.groupByDirectory",
+          "when": "false"
+        },
+        {
+          "command": "storm.ungroupByDirectory",
+          "when": "false"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "storm",
+          "title": "Find",
+          "icon": "media/find.svg"
+        }
+      ]
+    },
+    "views": {
+      "storm": [
+        {
+          "id": "storm.findResults",
+          "name": "Find",
+          "icon": "media/find.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "storm.findResults",
+        "contents": "No results yet.\nUse Find in Files then press Ctrl+Enter (or click \"Open in Find Window\") to list every occurrence here.\n[Find in Files…](command:storm.findInFiles)"
+      }
+    ],
+    "configuration": {
+      "title": "Storm",
+      "properties": {
+        "storm.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/.git/**",
+            "**/.svn/**",
+            "**/.hg/**",
+            "**/node_modules/**",
+            "**/.idea/**",
+            "**/.claude/worktrees/**",
+            "**/.vscode-test/**",
+            "**/var/cache/**",
+            "**/storage/framework/**",
+            "**/storage/debugbar/**",
+            "**/storage/inertia-devtools/**",
+            "**/storage/clockwork/**",
+            "**/storage/logs/**",
+            "**/.cache/**",
+            "**/*.min.js",
+            "**/*.min.css",
+            "**/*.map"
+          ],
+          "markdownDescription": "Glob patterns excluded from the index (equivalent of *Mark Directory as Excluded* in PhpStorm). `files.exclude` is always honoured, `search.exclude` too when `#storm.respectSearchExclude#` is on."
+        },
+        "storm.respectSearchExclude": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Also exclude files matched by `#search.exclude#`."
+        },
+        "storm.useIgnoreFiles": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Do not index the files ignored by git (`.gitignore` files, `.git/info/exclude`). Library folders (`#storm.libraryFolders#`) and `#storm.alwaysIndex#` stay indexed. Ignored files can still be searched with the *All Places, Including Ignored Files* scope or by searching in a directory."
+        },
+        "storm.alwaysIndex": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/_ide_helper*.php",
+            "**/.phpstorm.meta.php",
+            "**/.phpstorm.meta.php/**"
+          ],
+          "markdownDescription": "Glob patterns of files indexed even when git ignores them (e.g. the Laravel IDE helper files, which Go to Symbol needs). Library folders (`#storm.libraryFolders#`) are always indexed too."
+        },
+        "storm.libraryFolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/vendor/**"
+          ],
+          "markdownDescription": "Glob patterns of *library roots* (e.g. Composer `vendor`). They are indexed but only shown when **Include non-project items** is checked or when the scope is *All Places*."
+        },
+        "storm.maxFileSizeKB": {
+          "type": "number",
+          "default": 2560,
+          "markdownDescription": "Files larger than this (in KB) are listed in Go to File but not indexed for text search (PhpStorm's default is 2.5 MB)."
+        },
+        "storm.maxFiles": {
+          "type": "number",
+          "default": 300000,
+          "description": "Maximum number of files to index."
+        },
+        "storm.contentCacheMB": {
+          "type": "number",
+          "default": 256,
+          "description": "Memory budget (MB) for the in-memory file content cache used to verify trigram candidates."
+        },
+        "storm.persistIndex": {
+          "type": "boolean",
+          "default": true,
+          "description": "Persist the index on disk so that reopening the workspace does not trigger a full re-index."
+        },
+        "storm.popupResultLimit": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum number of matching lines displayed in the Find in Files popup."
+        },
+        "storm.findWindowResultLimit": {
+          "type": "number",
+          "default": 50000,
+          "description": "Maximum number of matching lines listed in the Find tool window."
+        },
+        "storm.useLanguageServerSymbols": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Merge symbols coming from language servers (`Go to Symbol in Workspace`, e.g. Intelephense) into the Classes / Symbols tabs. The built-in index is used in any case."
+        },
+        "storm.previewColors": {
+          "type": "string",
+          "enum": [
+            "theme",
+            "jetbrains"
+          ],
+          "enumDescriptions": [
+            "Use the token colours of the active VS Code colour theme (and editor.tokenColorCustomizations).",
+            "Use the JetBrains palette (New UI Dark / IntelliJ Light), like PhpStorm."
+          ],
+          "default": "theme",
+          "description": "Syntax colours of the Find in Files preview and result list."
+        },
+        "storm.closeOnFocusLoss": {
+          "type": "boolean",
+          "default": true,
+          "description": "Close the popup when another editor gets the focus (unless it is pinned), like a JetBrains popup."
+        }
+      }
+    },
+    "themes": [
+      {
+        "label": "Storm Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/storm-dark.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node esbuild.mjs --tests && node --test out-test/unit.test.js out-test/worker.test.js",
+    "package": "vsce package --no-dependencies --allow-missing-repository",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "theme": "node scripts/theme/build.js",
+    "theme:preview": "node scripts/theme/build.js && node scripts/theme/preview.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  }
+}

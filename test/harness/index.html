@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Storm harness</title>
+<link rel="stylesheet" href="../../media/webview.css">
+<style>
+  /* A subset of VS Code "Dark Modern" theme variables */
+  :root {
+    --vscode-font-family: 'Segoe UI', system-ui, sans-serif; --vscode-font-size: 13px;
+    --vscode-foreground: #cccccc; --vscode-descriptionForeground: #9d9d9d;
+    --vscode-editor-background: #1f1f1f; --vscode-editor-foreground: #cccccc;
+    --vscode-quickInput-background: #222222; --vscode-widget-border: #313131;
+    --vscode-quickInputList-focusBackground: #04395e; --vscode-quickInputList-focusForeground: #ffffff;
+    --vscode-list-hoverBackground: #2a2d2e; --vscode-focusBorder: #0078d4;
+    --vscode-input-background: #313131; --vscode-input-foreground: #cccccc; --vscode-input-border: #3c3c3c;
+    --vscode-list-highlightForeground: #2aaaff; --vscode-editor-findMatchHighlightBackground: rgba(234,92,0,0.33);
+    --vscode-editor-findMatchBackground: #9e6a03; --vscode-editor-lineHighlightBackground: #282828;
+    --vscode-editorLineNumber-foreground: #6e7681; --vscode-editor-font-family: Consolas, monospace; --vscode-editor-font-size: 13px;
+    --vscode-button-background: #0078d4; --vscode-button-foreground: #fff; --vscode-button-hoverBackground: #026ec1;
+    --vscode-button-secondaryBackground: #313131; --vscode-button-secondaryForeground: #ccc;
+    --vscode-inputOption-activeBackground: rgba(36,137,219,0.51); --vscode-inputOption-activeBorder: #2488db;
+    --vscode-textLink-foreground: #4daafc; --vscode-dropdown-background: #313131; --vscode-scrollbarSlider-background: rgba(121,121,121,0.4);
+  }
+</style>
+</head>
+<body class="vscode-dark">
+<div id="app"></div>
+<script>
+const mode = new URLSearchParams(location.search).get('mode') || 'find';
+const REAL = new URLSearchParams(location.search).has('real');
+// ?theme=1: token colours as resolved by the extension for "Dark 2026"
+const THEME = new URLSearchParams(location.search).has('theme') ? {"kc":{"fg":"#C586C0"},"k":{"fg":"#ff7b72"},"s":{"fg":"#a5d6ff"},"c":{"fg":"#8b949e"},"n":{"fg":"#b5cea8"},"v":{"fg":"#c9d1d9"},"f":{"fg":"#d2a8ff"},"y":{"fg":"#4EC9B0"},"t":{"fg":"#7ee787"},"a":{"fg":"#9cdcfe"}} : null;
+const status = { state: 'ready', totalFiles: 1234, indexedFiles: 1234, pendingFiles: 0, trigrams: 1, symbols: 1 };
+const php = `<?php
+namespace App\\Http\\Controllers;
+
+use App\\Services\\UserService;
+use Illuminate\\Http\\Request;
+
+/**
+ * Lists and manages users.
+ */
+class UserController extends Controller
+{
+    public function __construct(private UserService $userService)
+    {
+    }
+
+    public function index(Request $request)
+    {
+        $limit = 25;
+        return $this->userService->findAll($limit); // findAll users
+    }
+
+    public function show(int $id)
+    {
+        return view('users.show', ['user' => $this->userService->find($id)]);
+    }
+}
+`;
+const matches = [
+  { path: '/p/app/Http/Controllers/UserController.php', rel: 'app/Http/Controllers/UserController.php', lib: false, line: 178, text: "return $this->userService->findAll($limit); // findAll users", textOffset: 8, ranges: [27, 34, 47, 54], col: 35, endLine: 178, endCol: 42, count: 2 },
+  { path: '/p/app/Services/UserService.php', rel: 'app/Services/UserService.php', lib: false, line: 12, text: 'public function findAll(int $limit = 50): array', textOffset: 4, ranges: [16, 23], col: 20, endLine: 12, endCol: 27, count: 1 },
+  { path: '/p/resources/js/users.js', rel: 'resources/js/users.js', lib: false, line: 3, text: "const users = await api.findAll({ page });", textOffset: 2, ranges: [24, 31], col: 26, endLine: 3, endCol: 33, count: 1 },
+  { path: '/p/vendor/acme/repo/src/Repository.php', rel: 'vendor/acme/repo/src/Repository.php', lib: true, line: 40, text: 'abstract public function findAll(): iterable;', textOffset: 4, ranges: [25, 32], col: 29, endLine: 40, endCol: 36, count: 1 },
+];
+function post(m) { window.postMessage(m, '*'); }
+window.acquireVsCodeApi = () => ({
+  getState: () => ({}), setState() {},
+  postMessage(m) {
+    console.log('toHost', JSON.stringify(m).slice(0, 200));
+    if (m.type === 'ready') {
+      if (mode === 'find') post({ type: 'init', mode: 'find', modules: [], platform: 'win32', pinned: false, status, tokenColors: THEME, maskHistory: ['*.php, !*.blade.php', 'app/**/*.php'],
+        find: { query: 'findAll', matchCase: false, words: false, regex: false, replace: 'getAll', replaceMode: new URLSearchParams(location.search).has('replace'), maskEnabled: true, mask: '*.php', scope: 'project', directory: '', module: '', namedScope: 'all' } });
+      else post({ type: 'init', mode: 'everywhere', tab: 'all', query: 'usco', includeNonProject: false, modules: [], platform: 'win32', pinned: false, status: { ...status, state: 'indexing', indexedFiles: 800 } });
+    }
+    if (m.type === 'find' && REAL) { fetch('tmp/real-results.json').then(r => r.json()).then(items => { window.__t0 = performance.now(); post({ type: 'findResults', seq: m.seq, items: m.options.query ? items : [], reset: true, done: true, stats: { matches: items.length, lines: items.length, files: 7, truncated: false, searchedFiles: 9, durationMs: 3 } }); }); return; }
+    if (m.type === 'preview' && REAL) { fetch('tmp/dashboard.js.txt').then(r => r.text()).then(content => { window.__p0 = performance.now(); post({ type: 'preview', path: m.path, rel: m.path, content, languageId: 'javascript' }); setTimeout(() => window.__p1 = performance.now(), 0); }); return; }
+    if (m.type === 'find') setTimeout(() => post({ type: 'findResults', seq: m.seq, items: m.options.query ? matches : [], reset: true, done: true, stats: { matches: 5, lines: 4, files: 4, truncated: false, searchedFiles: 4, durationMs: 3 } }), 10);
+    if (m.type === 'preview') post({ type: 'preview', path: m.path, rel: m.path.replace('/p/', ''), content: m.path.includes('UserController') ? Array.from({ length: 160 }, (_, i) => '// filler line ' + (i + 1)).join(String.fromCharCode(10)) + String.fromCharCode(10) + php : php, languageId: 'php' });
+    if (m.type === 'everywhere') post({ type: 'everywhereResults', seq: m.seq, tab: m.tab, done: true, groups: [
+      { kind: 'classes', more: true, items: [
+        { name: 'UserController', kind: 'class', container: 'App\\Http\\Controllers', path: '/p/a.php', rel: 'app/Http/Controllers/UserController.php', lib: false, line: 9, col: 6, score: 1, hl: [0, 2, 4, 6] },
+        { name: 'UserConsentScope', kind: 'trait', container: 'App\\Models', path: '/p/b.php', rel: 'app/Models/UserConsentScope.php', lib: false, line: 3, col: 6, score: 1, hl: [0, 2, 4, 6] },
+        { name: 'UserCountable', kind: 'interface', container: 'App\\Contracts', path: '/p/c.php', rel: 'app/Contracts/UserCountable.php', lib: false, line: 3, col: 10, score: 1, hl: [0, 2, 4, 6] } ] },
+      { kind: 'files', more: false, items: [
+        { path: '/p/a.php', rel: 'app/Http/Controllers/UserController.php', name: 'UserController.php', dir: 'app/Http/Controllers', lib: false, score: 1, hl: [0, 2, 4, 6] },
+        { path: '/p/t.php', rel: 'tests/Feature/UserControllerTest.php', name: 'UserControllerTest.php', dir: 'tests/Feature', lib: false, score: 1, hl: [0, 2, 4, 6] },
+        { path: '/p/u.vue', rel: 'resources/js/components/UserCount.vue', name: 'UserCount.vue', dir: 'resources/js/components', lib: false, score: 1, hl: [0, 2, 4, 6] } ] },
+      { kind: 'symbols', more: false, items: [
+        { name: 'userCount', kind: 'method', container: 'StatsService', path: '/p/s.php', rel: 'app/Services/StatsService.php', lib: false, line: 41, col: 20, score: 1, hl: [0, 2, 4, 6] },
+        { name: 'USER_COOKIE', kind: 'constant', container: 'Auth', path: '/p/au.php', rel: 'app/Auth.php', lib: false, line: 8, col: 10, score: 1, hl: [0, 2, 5, 7] } ] },
+      { kind: 'actions', more: false, items: [ { id: 'x', title: 'Uncomment Selection', category: 'Edit', score: 1, hl: [0, 1, 2, 3] } ] },
+    ] });
+  },
+});
+</script>
+<script src="../../dist/webview.js"></script>
+</body>
+</html>
