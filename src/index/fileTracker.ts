@@ -178,7 +178,7 @@ export class FileTracker implements vscode.Disposable {
 
   private scheduleRescan() {
     if (this.rescanTimer) clearTimeout(this.rescanTimer);
-    this.rescanTimer = setTimeout(() => this.scan(), 1000);
+    this.rescanTimer = setTimeout(() => this.scan().catch((e) => this.log.appendLine(`scan failed: ${e}`)), 1000);
   }
 
   private queueFs(kind: 'created' | 'changed' | 'deleted', uri: vscode.Uri) {

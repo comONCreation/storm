@@ -122,7 +122,7 @@ export class Popup implements vscode.Disposable {
         }, 150);
       }
     });
-    panel.webview.onDidReceiveMessage((m: ToHost) => this.onMessage(m).catch((e) => console.error(e)));
+    panel.webview.onDidReceiveMessage((m: ToHost) => this.onMessage(m).catch((e) => this.onMessageError(m, e)));
   }
 
   private titleFor(init: ToWebview) {
@@ -212,6 +212,14 @@ export class Popup implements vscode.Disposable {
         this.close();
         break;
     }
+  }
+
+  /** A failed request must still be answered, or the webview keeps waiting for it. */
+  private onMessageError(m: ToHost, e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(e);
+    if (m.type === 'everywhere') this.post({ type: 'everywhereResults', seq: m.seq, tab: m.tab, groups: [], done: true });
+    else vscode.window.showErrorMessage(`Storm: ${message}`);
   }
 
   private maskHistory(): string[] {

@@ -30,6 +30,24 @@ export function buildRegExp(q: TextQuery, global = true): RegExp {
   return new RegExp(buildSource(q), flags);
 }
 
+/**
+ * Expands $1, $&, $<name>, $$ and \n \r \t \\ in a regex replacement string (Java/PhpStorm
+ * compatible syntax). Shared by the replacement itself (worker) and its preview (webview).
+ */
+export function expandReplacement(repl: string, m: RegExpExecArray): string {
+  return repl.replace(/\$(\$|&|\d{1,2}|<([^>]+)>)|\\([nrt\\])/g, (all, tok: string, name: string, esc: string) => {
+    if (esc) return esc === 'n' ? '\n' : esc === 'r' ? '\r' : esc === 't' ? '\t' : '\\';
+    if (tok === '$') return '$';
+    if (tok === '&') return m[0];
+    if (name !== undefined) return m.groups?.[name] ?? '';
+    const n = Number(tok);
+    if (n < m.length) return m[n] ?? '';
+    // "$12" with only one group: "$1" followed by "2"
+    if (tok.length === 2 && Number(tok[0]) < m.length) return (m[Number(tok[0])] ?? '') + tok[1];
+    return all;
+  });
+}
+
 export function tryBuildRegExp(q: TextQuery, global = true): RegExp | string {
   try {
     return buildRegExp(q, global);

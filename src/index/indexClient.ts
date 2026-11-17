@@ -10,6 +10,8 @@ type Pending = {
   onBatch?: (items: LineMatch[], done: boolean, stats?: TextSearchStats, error?: string) => void;
 };
 
+const DEAD_MESSAGE = 'The index worker keeps crashing and was stopped. See the "Storm" output channel, then reload the window.';
+
 // Distributive Omit so that discriminated unions keep working.
 type WithoutId<T> = T extends unknown ? Omit<T, 'id'> : never;
 
@@ -23,6 +25,8 @@ export class IndexClient implements vscode.Disposable {
   private worker!: Worker;
   private nextId = 1;
   private disposed = false;
+  /** The worker crashed too often and was not restarted. */
+  private dead = false;
   private settings: WorkerSettings | undefined;
   private restarts: number[] = [];
   private readonly restartEmitter = new vscode.EventEmitter<void>();
@@ -56,6 +60,8 @@ export class IndexClient implements vscode.Disposable {
       const now = Date.now();
       this.restarts = this.restarts.filter((t) => now - t < 60000);
       if (this.restarts.length >= 3) {
+        // Given up: later requests fail at once instead of waiting for a worker that is gone.
+        this.dead = true;
         vscode.window.showErrorMessage('Storm: the index worker keeps crashing. See the "Storm" output channel.');
         return;
       }
@@ -102,6 +108,7 @@ export class IndexClient implements vscode.Disposable {
 
   private request<T>(msg: WithoutId<WorkerRequest>): Promise<T> {
     const id = this.nextId++;
+    if (this.dead) return Promise.reject(new Error(DEAD_MESSAGE));
     return new Promise<T>((resolve, reject) => {
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject });
       this.worker.postMessage({ ...msg, id } as WorkerRequest);
@@ -146,6 +153,10 @@ export class IndexClient implements vscode.Disposable {
     onBatch: (items: LineMatch[], done: boolean, stats?: TextSearchStats, error?: string) => void,
   ): TextSearchHandle {
     const id = this.nextId++;
+    if (this.dead) {
+      queueMicrotask(() => onBatch([], true, undefined, DEAD_MESSAGE));
+      return { done: Promise.resolve(), cancel: () => undefined };
+    }
     const done = new Promise<void>((resolve, reject) => {
       this.pending.set(id, { resolve: () => resolve(), reject, onBatch });
     });
@@ -163,6 +174,7 @@ export class IndexClient implements vscode.Disposable {
   }
 
   async flush(timeoutMs = 3000) {
+    if (this.dead) return;
     const id = this.nextId++;
     await Promise.race([
       new Promise((resolve, reject) => {

@@ -11,7 +11,7 @@ import { trigramsOf, queryTrigrams } from './trigram';
 import { PostingStore, intersect } from './postings';
 import { extractSymbols, RawSymbol } from './symbols';
 import { compilePattern, fuzzyMatch, CompiledPattern } from '../shared/fuzzy';
-import { buildRegExp, requiredLiterals, compileMask, MaskMatcher } from '../shared/query';
+import { buildRegExp, requiredLiterals, compileMask, MaskMatcher, expandReplacement } from '../shared/query';
 import {
   CLASS_KINDS, FileHit, IndexStatus, LineMatch, ResolvedScope, SymbolHit, SymbolKind, TextQuery, TextSearchStats,
 } from '../shared/protocol';
@@ -518,11 +518,18 @@ async function persistNow() {
   header.writeUInt32LE(json.length, 8);
   const pad = Buffer.alloc((4 - ((12 + json.length) % 4)) % 4);
   const file = settings.storageFile!;
-  await fsp.mkdir(path.dirname(file), { recursive: true });
-  const tmp = file + '.tmp';
-  await fsp.writeFile(tmp, Buffer.concat([header, json, pad, ...postings.serialize()]));
-  await fsp.rename(tmp, file);
+  const data = Buffer.concat([header, json, pad, ...postings.serialize()]);
+  // The snapshot is taken: changes made while writing set dirty again and are saved next time.
   dirty = false;
+  try {
+    await fsp.mkdir(path.dirname(file), { recursive: true });
+    const tmp = file + '.tmp';
+    await fsp.writeFile(tmp, data);
+    await fsp.rename(tmp, file);
+  } catch (e) {
+    dirty = true;
+    throw e;
+  }
 }
 
 function loadPersisted(): boolean {
@@ -811,20 +818,6 @@ async function searchText(msg: Extract<WorkerRequest, { type: 'searchText' }>) {
   post({ type: 'textBatch', id, items: batch, done: true, stats });
 }
 
-/** Expands $1, $&, $<name>, $$ in a replacement string (Java/PhpStorm compatible syntax). */
-function expandReplacement(repl: string, m: RegExpExecArray): string {
-  return repl.replace(/\$(\$|&|\d{1,2}|<([^>]+)>)|\\([nrt\\])/g, (all, tok: string, name: string, esc: string) => {
-    if (esc) return esc === 'n' ? '\n' : esc === 'r' ? '\r' : esc === 't' ? '\t' : '\\';
-    if (tok === '$') return '$';
-    if (tok === '&') return m[0];
-    if (name !== undefined) return m.groups?.[name] ?? '';
-    const n = Number(tok);
-    if (n < m.length) return m[n] ?? '';
-    // "$12" with only one group: "$1" followed by "2"
-    if (tok.length === 2 && Number(tok[0]) < m.length) return (m[Number(tok[0])] ?? '') + tok[1];
-    return all;
-  });
-}
 
 async function computeReplace(msg: Extract<WorkerRequest, { type: 'computeReplace' }>) {
   const re = buildRegExp(msg.query);
@@ -834,7 +827,7 @@ async function computeReplace(msg: Extract<WorkerRequest, { type: 'computeReplac
     cands = cands.filter((e) => e.key === k);
   }
   const result: Array<{ path: string; edits: ReplaceEdit[] }> = [];
-  let count = 0;
+  let lastYield = Date.now();
   for (const e of cands) {
     if (cancelled.has(msg.id)) {
       cancelled.delete(msg.id);
@@ -872,11 +865,12 @@ async function computeReplace(msg: Extract<WorkerRequest, { type: 'computeReplac
       const replacement = msg.query.regex ? expandReplacement(msg.replacement, m) : msg.replacement;
       edits.push({ line: lineNo, col, endLine: lineNo + nlc, endCol, text: replacement });
     }
-    if (edits.length) {
-      result.push({ path: e.path, edits });
-      count += edits.length;
+    if (edits.length) result.push({ path: e.path, edits });
+    // Same time-based yielding as searchText, so that cancel and other messages get through.
+    if (Date.now() - lastYield > 8) {
+      await yieldNow();
+      lastYield = Date.now();
     }
-    if (count % 50 === 0) await yieldNow();
   }
   post({ type: 'result', id: msg.id, payload: result });
 }

@@ -68,6 +68,9 @@ export class FindResults implements vscode.TreeDataProvider<Node>, vscode.Dispos
     this.running = this.search.runText(o, limit, (items, done, stats, error) => {
       this.matches.push(...items);
       if (error) {
+        this.running = undefined;
+        this.stats = stats;
+        this.flushRefresh();
         this.view.message = `Error: ${error}`;
         return;
       }

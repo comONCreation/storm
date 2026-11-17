@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { compilePattern, fuzzyMatch } from '../src/shared/fuzzy';
-import { requiredLiterals, buildRegExp, compileMask, globToRegExp } from '../src/shared/query';
+import { requiredLiterals, buildRegExp, compileMask, globToRegExp, expandReplacement } from '../src/shared/query';
 import { trigramsOf, queryTrigrams } from '../src/index/trigram';
 import { intersect, PostingStore } from '../src/index/postings';
 import { extractSymbols } from '../src/index/symbols';
@@ -338,4 +338,16 @@ test('gitignore: patterns, anchoring, directories, negation and nested files', (
   ci.add('', '/Build\n');
   assert.equal(ci.ignores('build/x.js'), true, 'case-insensitive on Windows');
   assert.equal(new IgnoreMatcher(false).ignores('anything'), false);
+});
+
+test('replacement: $n, $&, named groups, escapes, and lookarounds in context', () => {
+  const re = buildRegExp({ query: '(?<=\\$)(?<n>\\w+)', matchCase: true, words: false, regex: true });
+  const line = 'echo $name;';
+  re.lastIndex = 6;
+  const m = re.exec(line)!;
+  assert.equal(m.index, 6, 'the lookbehind sees the "$" before the match on the whole line');
+  assert.equal(expandReplacement('get_$1', m), 'get_name');
+  assert.equal(expandReplacement('[$&|$<n>|$$]', m), '[name|name|$]');
+  assert.equal(expandReplacement('a\\nb\\\\c', m), 'a\nb\\c');
+  assert.equal(expandReplacement('$12', m), 'name2', '"$12" with one group is "$1" then "2"');
 });

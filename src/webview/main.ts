@@ -1,6 +1,6 @@
 // Webview UI: "Search Everywhere" and "Find in Files / Replace in Files" popups.
 
-import { buildRegExp, tryBuildRegExp } from '../shared/query';
+import { buildRegExp, tryBuildRegExp, expandReplacement } from '../shared/query';
 import { tokenize, langFor, Seg } from './highlight';
 import type {
   ActionHit, EverywhereGroup, EverywhereTab, FileHit, FindOptions, IndexStatus, LineMatch, SymbolHit, TextSearchStats, ToHost, ToWebview, TokenColors,
@@ -516,12 +516,14 @@ const fif = {
   },
 
   replacePreview(m: LineMatch): string {
-    let single: RegExp | null = null;
+    // Same expansion as the real replacement (worker), with the regex run on the whole line so that
+    // lookarounds, \b and ^ see the same context as in the file.
+    let re: RegExp | null = null;
     if (this.o.regex) {
       try {
-        single = buildRegExp(this.o, false);
+        re = buildRegExp(this.o, true);
       } catch {
-        single = null;
+        re = null;
       }
     }
     let out = '';
@@ -532,12 +534,10 @@ const fif = {
       if (e < s) continue;
       const matched = m.text.slice(s, e);
       let repl = this.o.replace;
-      if (single) {
-        try {
-          repl = matched.replace(single, this.o.replace.replace(/\\n/g, '\n').replace(/\\t/g, '\t'));
-        } catch {
-          /* keep raw */
-        }
+      if (re) {
+        re.lastIndex = s;
+        const hit = re.exec(m.text);
+        if (hit && hit.index === s) repl = expandReplacement(this.o.replace, hit);
       }
       out += esc(m.text.slice(pos, s)) + `<span class="del">${esc(matched)}</span><span class="ins">${esc(repl)}</span>`;
       pos = e;

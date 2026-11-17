@@ -136,6 +136,11 @@ export async function activate(ctx: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('storm.maxFileSizeKB') || e.affectsConfiguration('storm.contentCacheMB') || e.affectsConfiguration('storm.persistIndex')) {
         client?.updateSettings(workerSettings(ctx));
+        // The size limit decides which files are indexed at all: re-index with the new limit.
+        if (e.affectsConfiguration('storm.maxFileSizeKB')) {
+          client?.send({ type: 'rebuild' });
+          tracker.scan().catch((err) => log.appendLine(`scan failed: ${err}`));
+        }
       }
     }),
   );
