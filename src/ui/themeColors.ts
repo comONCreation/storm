@@ -15,7 +15,7 @@ interface ThemeContribution {
 }
 
 /** Name of the active theme, honouring "window.autoDetectColorScheme". */
-function activeThemeName(): string | undefined {
+export function activeThemeName(): string | undefined {
   const cfg = vscode.workspace.getConfiguration();
   if (cfg.get<boolean>('window.autoDetectColorScheme')) {
     const kind = vscode.window.activeColorTheme.kind;

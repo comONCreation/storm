@@ -2,7 +2,7 @@
   "name": "storm",
   "displayName": "Storm — PhpStorm experience for VS Code",
   "description": "PhpStorm / JetBrains features in VS Code: Search Everywhere, Find in Files and Replace in Files popups backed by a persistent trigram index, the Find window, and the Storm Dark theme with JetBrains syntax colours.",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "publisher": "storm",
   "license": "MIT",
   "engines": {
@@ -424,6 +424,11 @@
           "type": "boolean",
           "default": true,
           "description": "Close the popup when another editor gets the focus (unless it is pinned), like a JetBrains popup."
+        },
+        "storm.jetbrainsHighlighting": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "With the **Storm Dark** theme, colour JavaScript / TypeScript like WebStorm / PhpStorm where a theme cannot: parameters (also function-typed ones, which TypeScript marks like functions), function-typed properties (`onReset?: () => void`) and JSX components imported from a `'use client'` module."
         }
       }
     },
@@ -432,6 +437,38 @@
         "label": "Storm Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/storm-dark.json"
+      }
+    ],
+    "colors": [
+      {
+        "id": "storm.parameterForeground",
+        "description": "Storm: JS/TS parameters (JetBrains-accurate highlighting).",
+        "defaults": {
+          "dark": "#BCBEC4",
+          "light": "#080808",
+          "highContrast": "#FFFFFF",
+          "highContrastLight": "#000000"
+        }
+      },
+      {
+        "id": "storm.fieldForeground",
+        "description": "Storm: JS/TS function-typed properties (JetBrains-accurate highlighting).",
+        "defaults": {
+          "dark": "#C77DBB",
+          "light": "#871094",
+          "highContrast": "#C77DBB",
+          "highContrastLight": "#871094"
+        }
+      },
+      {
+        "id": "storm.jsxClientComponentForeground",
+        "description": "Storm: JSX components imported from a 'use client' module.",
+        "defaults": {
+          "dark": "#9C9CFF",
+          "light": "#6F42C1",
+          "highContrast": "#9C9CFF",
+          "highContrastLight": "#6F42C1"
+        }
       }
     ]
   },

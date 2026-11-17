@@ -1,4 +1,4 @@
-// Debug helper: prints scope → colour for each token of the PHP sample (variant given as argument).
+// Debug helper: prints scope → colour for each token of a sample (env DUMP_CODE, DUMP_SCOPE e.g. source.tsx, FULL=1).
 const fs = require('fs'), path = require('path');
 const vsctm = require('vscode-textmate'), onig = require('vscode-oniguruma');
 const extensionsDir = require('./extdir');
@@ -16,7 +16,7 @@ class ItemController extends Controller {
     }
 }`;
 (async () => {
-  const g = await reg.loadGrammar('text.html.php'); const cm = reg.getColorMap(); let st = vsctm.INITIAL;
+  const g = await reg.loadGrammar(process.env.DUMP_SCOPE || 'text.html.php'); const cm = reg.getColorMap(); let st = vsctm.INITIAL;
   for (const line of code.split('\n')) {
     const t = g.tokenizeLine(line, st);
     const t2 = g.tokenizeLine2(line, st);

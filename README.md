@@ -4,6 +4,18 @@ L'expérience **PhpStorm** dans Visual Studio Code : **Search Everywhere**, **Fi
 
 > Projet indépendant, inspiré des IDE JetBrains. Il n'est ni affilié à JetBrains ni approuvé par JetBrains.
 
+## Installation
+
+Téléchargez le fichier `storm-x.y.z.vsix` de la dernière version sur la page des [releases](https://github.com/comONCreation/storm/releases/latest), puis :
+
+```bash
+code --install-extension storm-x.y.z.vsix
+```
+
+ou, dans VS Code : Extensions → `…` → **Install from VSIX…**. Pour mettre à jour, installez de la même façon le `.vsix` d'une version plus récente.
+
+Le thème s'active via *Préférences → Thème de couleur → Storm Dark*.
+
 ## Fonctionnalités
 
 ### Search Everywhere — `Shift` `Shift`
@@ -66,11 +78,25 @@ Ces raccourcis remplacent ceux de VS Code (ex. `Ctrl+N` = nouveau fichier) : mod
 | Variables PHP et `$this` | `#9876AA` |
 | Accès aux propriétés PHP (`$x->id`) | `#CF8E6D` |
 | Arguments nommés PHP (`folderId:`) | `#467CDA` |
+| Appels de fonctions JS/TS (`setConfirming(true)`, `React.useState()`) | `#56A8F5` |
+| Variables locales, `const` et imports JS/TS, opérateur `=>` | `#BCBEC4` |
+| Globales JS (`window`, `document`, `console`) | `#C77DBB` italique |
 | Propriétés (JS/TS…), clés JSON | `#C77DBB` |
 | Constantes, membres statiques | `#C77DBB` italique |
 | Attributs / annotations / décorateurs | `#B3AE60` |
-| Balises HTML / XML | `#D5B778` |
+| Balises HTML / XML (`<div>`) | `#D5B778` |
+| Composants JSX / TSX (`<Button>`, `<AlertDialog.Content>`) | `#2FBAA3` |
+| Composants importés d'un module `'use client'` | `#9C9CFF` |
 | Paramètres de type | `#16BAAC` |
+
+#### Coloration JS/TS fidèle à WebStorm
+
+Certaines couleurs de WebStorm / PhpStorm sont impossibles à obtenir avec un thème seul : le serveur TypeScript marque un paramètre de type fonction (`onReset`) comme une déclaration de fonction, une propriété de type fonction (`onReset?: () => void`) comme une méthode, et un thème ne voit pas d'où vient un composant JSX. Avec Storm Dark, l'extension analyse donc les fichiers JS/TS (compilateur TypeScript, chargé seulement à l'ouverture d'un tel fichier) et colore par-dessus le thème :
+- les **paramètres** et leurs usages, quel que soit leur type (texte) ;
+- les **propriétés de type fonction** des types, interfaces et classes (`#C77DBB`) ;
+- les **composants importés d'un module `'use client'`** (`#9C9CFF`, « JSX client component » de WebStorm) : imports relatifs, alias `paths` du `tsconfig.json` / `jsconfig.json` (y compris via `extends` / `references`) et paquets de `node_modules`. Les ré-exports (fichiers `index` « barrel ») ne sont pas suivis.
+
+Désactivable avec `storm.jetbrainsHighlighting` ; couleurs modifiables via `workbench.colorCustomizations` (`storm.parameterForeground`, `storm.fieldForeground`, `storm.jsxClientComponentForeground`).
 
 Valeurs lues dans les schémas officiels du dépôt open source JetBrains/intellij-community (`islands/IslandSchemeDark.xml` et `expUI/expUI_darkScheme.xml`). Ces schémas héritent de Darcula sans redéfinir les couleurs propres au PHP : PhpStorm garde donc celles de Darcula pour les variables, les propriétés et les arguments nommés (valeurs relevées sur une capture de PhpStorm 2025.3 en Islands Dark). Le thème définit aussi les couleurs sémantiques (Intelephense, TypeScript, C#…). Pour aller plus loin : police **JetBrains Mono** (`"editor.fontFamily": "JetBrains Mono"`, taille 13, interligne 22).
 
@@ -108,6 +134,7 @@ Pendant l'indexation initiale, la recherche fonctionne déjà (les fichiers non 
 | `storm.useLanguageServerSymbols` | `false` | Fusionne les symboles des serveurs de langage (ex. Intelephense) |
 | `storm.previewColors` | `theme` | Couleurs syntaxiques de l'aperçu et de la liste : celles du thème VS Code actif (`theme`, avec `editor.tokenColorCustomizations`) ou la palette JetBrains (`jetbrains`) |
 | `storm.closeOnFocusLoss` | `true` | Ferme le popup quand un autre éditeur prend le focus (sauf épinglé) |
+| `storm.jetbrainsHighlighting` | `true` | Avec Storm Dark, coloration JS/TS fidèle à WebStorm (paramètres, propriétés de type fonction, composants `'use client'`) |
 
 Commande **Storm: Invalidate Caches and Rebuild Index** pour reconstruire l'index.
 
@@ -153,6 +180,7 @@ src/
   index/indexClient.ts    RPC hôte ↔ worker
   index/fileTracker.ts    listage, watcher, documents non sauvegardés, règles git ignore
   index/gitignore.ts      moteur de règles .gitignore (syntaxe et priorités de git)
+  jsColors/               coloration JS/TS fidèle à WebStorm (analyse TypeScript, résolution des imports, décorations)
   shared/fuzzy.ts         matcher flou CamelHumps (type MinusculeMatcher)
   shared/query.ts         compilation regex, littéraux obligatoires, masques de fichiers
   ui/popup.ts             contrôleur de la webview (Search Everywhere / Find in Files)

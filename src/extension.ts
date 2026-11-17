@@ -9,6 +9,7 @@ import { SearchService } from './ui/searchService';
 import { Popup } from './ui/popup';
 import { FindResults } from './ui/findResults';
 import { currentTokenColors } from './ui/themeColors';
+import { JsColorController } from './jsColors/controller';
 import { applyKeymap, findConflicts, promptKeymapConflicts, userKeybindingsPath } from './ui/keymap';
 import type { WorkerSettings } from './index/worker';
 import type { FindOptions, IndexStatus, LineMatch } from './shared/protocol';
@@ -45,6 +46,9 @@ export async function activate(ctx: vscode.ExtensionContext) {
   findResults = new FindResults(ctx, search, (o: FindOptions) => popup.show({ mode: 'find', find: o, query: o.query }));
 
   ctx.subscriptions.push(client, recent, tracker, popup, findResults);
+  // JetBrains-accurate JS/TS colours that a theme cannot express (Storm Dark only)
+  const jsColors = new JsColorController(ctx, log);
+  ctx.subscriptions.push(jsColors);
   client.onRestart(() => {
     log.appendLine('Index worker restarted, re-scanning the workspace');
     tracker.scan().catch((e) => log.appendLine(`scan failed: ${e}`));
@@ -152,7 +156,7 @@ export async function activate(ctx: vscode.ExtensionContext) {
   setTimeout(() => promptKeymapConflicts(ctx).catch((e) => log.appendLine(`keymap check failed: ${e}`)), 2000);
 
   // Exposed for integration tests.
-  return { client, popup, findResults, search, tokenColors: currentTokenColors, keymap: { findConflicts: () => findConflicts(ctx), applyKeymap: () => applyKeymap(ctx), userKeybindingsPath: () => userKeybindingsPath(ctx) } };
+  return { client, popup, findResults, search, jsColors, tokenColors: currentTokenColors, keymap: { findConflicts: () => findConflicts(ctx), applyKeymap: () => applyKeymap(ctx), userKeybindingsPath: () => userKeybindingsPath(ctx) } };
 }
 
 export async function deactivate() {

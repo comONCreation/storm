@@ -10,6 +10,10 @@
 //   named arguments #467CDA, function and method calls #57AAF7, static method calls
 //   #CF8E6D, no italic (measured on PhpStorm 2025.3 Islands Dark screenshots).
 
+/** TextMate scope suffixes and VS Code language ids of JavaScript / TypeScript. */
+const JS_EXT = ['js', 'jsx', 'ts', 'tsx'];
+const JS_LANGS = ['javascript', 'javascriptreact', 'typescript', 'typescriptreact'];
+
 /** Builds the TextMate rules of a palette. `c` = colour table. */
 function textMateRules(c) {
   const r = [];
@@ -59,6 +63,18 @@ function textMateRules(c) {
   add(['variable.other.class.php', 'variable.other.static'], c.field, c.staticStyle);
   add(['constant.other', 'variable.other.constant', 'support.constant', 'constant.other.class.php', 'constant.other.php', 'variable.other.enummember', 'constant.other.enum'], c.constant, c.staticStyle);
 
+  // JavaScript / TypeScript, as in PhpStorm / WebStorm (New UI Dark): "=>" is an operator sign
+  // (#BCBEC4, not a keyword); local constants and imports are plain local variables (only real
+  // globals such as window are purple italic, see the semantic colours); function calls use
+  // DEFAULT_FUNCTION_CALL, the same blue as declarations.
+  add(['storage.type.function.arrow'], c.text);
+  add(JS_EXT.map((x) => `variable.other.constant.${x}`), c.text, '');
+  add(JS_EXT.map((x) => `entity.name.function.${x}`), c.fnDecl, '');
+  // ...except decorators (@Component: annotation colour) and function-typed properties of a type
+  // (onReset?: () => void: a field, as in WebStorm). Same leaf scope plus a parent: these win.
+  add(JS_EXT.map((x) => `meta.decorator entity.name.function.${x}`), c.meta);
+  add(JS_EXT.map((x) => `meta.definition.property entity.name.function.${x}`), c.field);
+
   // Attributes / decorators / annotations, type parameters
   add(['meta.attribute', 'meta.attribute.php entity.name.type', 'meta.attribute.php support.class', 'meta.decorator', 'punctuation.decorator', 'meta.decorator entity.name.function', 'storage.type.annotation', 'punctuation.definition.annotation'], c.meta);
   add(['entity.name.type.parameter', 'meta.type.parameters entity.name.type', 'storage.type.generic'], c.typeParam);
@@ -66,6 +82,9 @@ function textMateRules(c) {
   // Markup: HTML / XML / Blade / Vue
   add(['entity.name.tag', 'punctuation.definition.tag', 'meta.tag.sgml.doctype'], c.tag);
   add(['entity.other.attribute-name'], c.attr);
+  // JSX / TSX components (<Button>, <AlertDialog.Content>): "Custom Tag Name" in JetBrains IDEs,
+  // distinct from HTML tags (<div>). More specific than the generic support.class rule.
+  add(['support.class.component'], c.customTag);
   // CSS
   add(['entity.name.tag.css', 'entity.other.attribute-name.class.css', 'entity.other.attribute-name.id.css', 'entity.other.attribute-name.pseudo-class.css', 'entity.other.attribute-name.pseudo-element.css'], c.cssSelector);
   add(['support.type.property-name.css', 'support.type.property-name.scss', 'support.type.vendored.property-name'], c.cssProperty);
@@ -94,7 +113,19 @@ function textMateRules(c) {
 /** Semantic tokens (Intelephense, TypeScript, C#…) win over TextMate when semantic highlighting is on. */
 function semanticTokenColors(c) {
   const style = (foreground, s) => (s ? { foreground, italic: /italic/.test(s), bold: /bold/.test(s) } : foreground);
+  // TypeScript server (also used for JavaScript): a readonly variable (const, import) is a plain
+  // local variable in WebStorm, not a constant. Without these rules VS Code maps it to the
+  // TextMate scope variable.other.constant (purple italic). Globals of the default library
+  // (window, document, console) are JS.GLOBAL_VARIABLE: purple italic.
+  const js = {};
+  for (const lang of JS_LANGS) {
+    js[`variable.readonly:${lang}`] = { foreground: c.text, italic: false };
+    js[`variable.defaultLibrary:${lang}`] = style(c.constant, c.staticStyle);
+    js[`variable.readonly.defaultLibrary:${lang}`] = style(c.constant, c.staticStyle);
+    js[`function:${lang}`] = { foreground: c.fnDecl, italic: false };
+  }
   return {
+    ...js,
     variable: c.text,
     'variable:php': c.phpVar,
     parameter: c.param,
@@ -160,6 +191,7 @@ const JETBRAINS = {
   meta: '#B3AE60',
   typeParam: '#16BAAC',
   tag: '#D5B778',
+  customTag: '#2FBAA3',
   attr: '#BCBEC4',
   cssSelector: '#D5B778',
   cssProperty: '#BCBEC4',

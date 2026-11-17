@@ -646,6 +646,60 @@
     },
     {
       "scope": [
+        "storage.type.function.arrow"
+      ],
+      "settings": {
+        "foreground": "#BCBEC4"
+      }
+    },
+    {
+      "scope": [
+        "variable.other.constant.js",
+        "variable.other.constant.jsx",
+        "variable.other.constant.ts",
+        "variable.other.constant.tsx"
+      ],
+      "settings": {
+        "foreground": "#BCBEC4",
+        "fontStyle": ""
+      }
+    },
+    {
+      "scope": [
+        "entity.name.function.js",
+        "entity.name.function.jsx",
+        "entity.name.function.ts",
+        "entity.name.function.tsx"
+      ],
+      "settings": {
+        "foreground": "#56A8F5",
+        "fontStyle": ""
+      }
+    },
+    {
+      "scope": [
+        "meta.decorator entity.name.function.js",
+        "meta.decorator entity.name.function.jsx",
+        "meta.decorator entity.name.function.ts",
+        "meta.decorator entity.name.function.tsx"
+      ],
+      "settings": {
+        "foreground": "#B3AE60"
+      }
+    },
+    {
+      "scope": [
+        "meta.definition.property entity.name.function.js",
+        "meta.definition.property entity.name.function.jsx",
+        "meta.definition.property entity.name.function.ts",
+        "meta.definition.property entity.name.function.tsx"
+      ],
+      "settings": {
+        "foreground": "#C77DBB"
+      }
+    },
+    {
+      "scope": [
         "meta.attribute",
         "meta.attribute.php entity.name.type",
         "meta.attribute.php support.class",
@@ -685,6 +739,14 @@
       ],
       "settings": {
         "foreground": "#BCBEC4"
+      }
+    },
+    {
+      "scope": [
+        "support.class.component"
+      ],
+      "settings": {
+        "foreground": "#2FBAA3"
       }
     },
     {
@@ -829,6 +891,78 @@
     }
   ],
   "semanticTokenColors": {
+    "variable.readonly:javascript": {
+      "foreground": "#BCBEC4",
+      "italic": false
+    },
+    "variable.defaultLibrary:javascript": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "variable.readonly.defaultLibrary:javascript": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "function:javascript": {
+      "foreground": "#56A8F5",
+      "italic": false
+    },
+    "variable.readonly:javascriptreact": {
+      "foreground": "#BCBEC4",
+      "italic": false
+    },
+    "variable.defaultLibrary:javascriptreact": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "variable.readonly.defaultLibrary:javascriptreact": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "function:javascriptreact": {
+      "foreground": "#56A8F5",
+      "italic": false
+    },
+    "variable.readonly:typescript": {
+      "foreground": "#BCBEC4",
+      "italic": false
+    },
+    "variable.defaultLibrary:typescript": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "variable.readonly.defaultLibrary:typescript": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "function:typescript": {
+      "foreground": "#56A8F5",
+      "italic": false
+    },
+    "variable.readonly:typescriptreact": {
+      "foreground": "#BCBEC4",
+      "italic": false
+    },
+    "variable.defaultLibrary:typescriptreact": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "variable.readonly.defaultLibrary:typescriptreact": {
+      "foreground": "#C77DBB",
+      "italic": true,
+      "bold": false
+    },
+    "function:typescriptreact": {
+      "foreground": "#56A8F5",
+      "italic": false
+    },
     "variable": "#BCBEC4",
     "variable:php": "#9876AA",
     "parameter": "#BCBEC4",

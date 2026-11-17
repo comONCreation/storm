@@ -7,6 +7,8 @@ import { intersect, PostingStore } from '../src/index/postings';
 import { extractSymbols } from '../src/index/symbols';
 import { resolveTokenColors, applyCustomizations } from '../src/shared/tokenTheme';
 import { IgnoreMatcher } from '../src/index/gitignore';
+import { analyze } from '../src/jsColors/analyze';
+import { hasUseClient } from '../src/jsColors/directive';
 
 const rank = (pattern: string, names: string[]) => {
   const cp = compilePattern(pattern);
@@ -350,4 +352,57 @@ test('replacement: $n, $&, named groups, escapes, and lookarounds in context', (
   assert.equal(expandReplacement('[$&|$<n>|$$]', m), '[name|name|$]');
   assert.equal(expandReplacement('a\\nb\\\\c', m), 'a\nb\\c');
   assert.equal(expandReplacement('$12', m), 'name2', '"$12" with one group is "$1" then "2"');
+});
+
+test('js colours: parameters, function-typed properties and JSX components', () => {
+  const src = [
+    "import * as React from 'react';",
+    "import { RotateCcw } from 'lucide-react';",
+    "import { AlertDialog, AlertDialogContent } from '@/components/ui/alert-dialog';",
+    "import { Button } from '@/components/ui/button';",
+    'interface Props { onClose?: () => void; label: string; render(): void }',
+    'export function Header({',
+    '  onReset,',
+    '  resetting = false,',
+    '}: {',
+    '  onReset?: () => void;',
+    '  resetting?: boolean;',
+    '}) {',
+    '  const [confirming, setConfirming] = React.useState(false);',
+    '  const run = (onReset: number) => onReset + 1;',
+    '  const other = { onReset, x: resetting };',
+    '  return (',
+    '    <div>',
+    '      {onReset && <Button disabled={resetting} onClick={() => setConfirming(true)}><RotateCcw /></Button>}',
+    '      <AlertDialog open={confirming}><AlertDialogContent /></AlertDialog>',
+    '      <Ui.Card />',
+    '    </div>',
+    '  );',
+    '}',
+    'class A { handler = () => 1; count = 0; method(a: string) { return a.length + this.count; } }',
+  ].join('\n');
+  const r = analyze(src, 'header.tsx');
+  const texts = (flat: number[]) => {
+    const out: string[] = [];
+    for (let i = 0; i < flat.length; i += 2) out.push(`${src.slice(flat[i], flat[i + 1])}@${src.slice(0, flat[i]).split('\n').length}`);
+    return out.sort();
+  };
+  assert.deepEqual(texts(r.params), [
+    'a@24', 'a@24', // declaration and reference in the class method
+    'onReset@14', 'onReset@14', // the inner arrow's own parameter (shadows the outer one)
+    'onReset@15', // shorthand { onReset } reads the parameter
+    'onReset@18', // {onReset && …}
+    'onReset@7',
+    'resetting@15', 'resetting@18', 'resetting@8',
+  ].sort());
+  assert.deepEqual(texts(r.fields), ['handler@24', 'onClose@5', 'onReset@10'].sort());
+  const tags = r.jsxTags.map((t) => `${src.slice(t.start, t.end)}<${t.module}`);
+  assert.deepEqual(tags, [
+    'Button<@/components/ui/button', 'RotateCcw<lucide-react', 'Button<@/components/ui/button',
+    'AlertDialog<@/components/ui/alert-dialog', 'AlertDialogContent<@/components/ui/alert-dialog', 'AlertDialog<@/components/ui/alert-dialog',
+  ]);
+  assert.equal(hasUseClient("'use client';\nimport x from 'y';"), true);
+  assert.equal(hasUseClient('/** doc */\n// note\n"use client"\n'), true);
+  assert.equal(hasUseClient("import x from 'y';\n'use client';"), false);
+  assert.equal(hasUseClient("'use server';"), false);
 });

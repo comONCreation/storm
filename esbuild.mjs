@@ -17,6 +17,8 @@ const builds = [
     mainFields: ['module', 'main'] },
   // Index worker thread (Node)
   { ...common, entryPoints: ['src/index/worker.ts'], outfile: 'dist/worker.js', platform: 'node', format: 'cjs', target: 'node18' },
+  // JS/TS colour analyzer with the TypeScript compiler, loaded on demand by the extension host
+  { ...common, minify: true, sourcemap: false, entryPoints: ['src/jsColors/analyze.ts'], outfile: 'dist/jsColors.js', platform: 'node', format: 'cjs', target: 'node18' },
   // Webview (browser)
   { ...common, entryPoints: ['src/webview/main.ts'], outfile: 'dist/webview.js', platform: 'browser', format: 'iife', target: 'es2020' },
 ];

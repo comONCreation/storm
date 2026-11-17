@@ -23,6 +23,12 @@ exports.run = async function () {
     while (Date.now() - t0 < 150000) {
       legend = await vscode.commands.executeCommand('vscode.provideDocumentSemanticTokensLegend', doc.uri);
       tokens = legend ? await vscode.commands.executeCommand('vscode.provideDocumentSemanticTokens', doc.uri) : undefined;
+      if (!tokens) {
+        // TypeScript only implements the range provider
+        const range = new vscode.Range(0, 0, doc.lineCount, 0);
+        legend = await vscode.commands.executeCommand('vscode.provideDocumentRangeSemanticTokensLegend', doc.uri, range);
+        tokens = legend ? await vscode.commands.executeCommand('vscode.provideDocumentRangeSemanticTokens', doc.uri, range) : undefined;
+      }
       const n = tokens && tokens.data ? tokens.data.length : 0;
       // wait until the language server has analysed the project: token count stable over 3 polls
       if (n && n === globalThis.__lastN) {
