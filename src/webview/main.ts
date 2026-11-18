@@ -936,11 +936,7 @@ function initFind(o: FindOptions) {
     const row = (e.target as HTMLElement).closest('.row') as HTMLElement | null;
     if (row) fif.open(Number(row.dataset.i), e.altKey);
   });
-  $('#code').addEventListener('dblclick', (e) => {
-    const line = (e.target as HTMLElement).closest('.cl') as HTMLElement | null;
-    const m = fif.items[fif.selected];
-    if (line && m) send({ type: 'openFile', path: m.path, line: Number(line.dataset.l), col: 0 });
-  });
+  // No double-click action on the preview: a double-click selects a word (to copy it), as in an editor.
 
   // Splitter between the result list and the preview.
   const splitter = $('#splitter');
