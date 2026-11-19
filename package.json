@@ -2,7 +2,7 @@
   "name": "storm",
   "displayName": "Storm — PhpStorm experience for VS Code",
   "description": "PhpStorm / JetBrains features in VS Code: Search Everywhere, Find in Files and Replace in Files popups backed by a persistent trigram index, the Find window, and the Storm Dark theme with JetBrains syntax colours.",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "publisher": "storm",
   "license": "MIT",
   "engines": {

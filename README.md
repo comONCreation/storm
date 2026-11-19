@@ -142,6 +142,8 @@ Commande **Storm: Invalidate Caches and Rebuild Index** pour reconstruire l'inde
 
 Par défaut (`storm.useIgnoreFiles`), Storm n'indexe pas les fichiers ignorés par git : tous les `.gitignore` du projet (et ceux des dossiers parents jusqu'à la racine du dépôt) ainsi que `.git/info/exclude`, avec la syntaxe et les priorités de git (`!` pour ré-inclure, règles des `.gitignore` profonds prioritaires…). Un `.gitignore` modifié est pris en compte aussitôt. Les `.gitignore` étant commités, toute l'équipe profite des mêmes exclusions sans réglage.
 
+Un dossier qui contient son propre `.git` est un dépôt à part : comme dans git, seules ses propres règles s'appliquent à ses fichiers. Par exemple, dans un workspace dont le `.gitignore` ignore `com_*` parce que chaque composant `com_*` est un dépôt séparé, les fichiers des composants restent indexés.
+
 Exceptions, toujours indexées même si git les ignore :
 - les **bibliothèques** (`storm.libraryFolders`, `vendor` par défaut), pour que *Go to Class* trouve les classes des dépendances, comme dans PhpStorm ;
 - les fichiers de `storm.alwaysIndex` (par défaut les fichiers d'aide IDE de Laravel : `_ide_helper*.php`, `.phpstorm.meta.php`).

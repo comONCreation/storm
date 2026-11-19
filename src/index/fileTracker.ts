@@ -18,7 +18,9 @@ export class FileTracker implements vscode.Disposable {
   private excludeGlob = '';
   private alwaysIndexRes: RegExp[] = [];
   /** Git ignore rules per workspace folder (empty when storm.useIgnoreFiles is off). */
-  private ignoreRoots: Array<{ folder: string; root: string; matcher: IgnoreMatcher }> = [];
+  private ignoreRoots: Array<{ folder: string; root: string; repos: Map<string, { root: string; matcher: IgnoreMatcher }> }> = [];
+  /** Directory → root of the git repository it belongs to (nested repositories included). */
+  private repoCache = new Map<string, string>();
   /** Files ignored by git, searchable on demand ("Including Ignored Files" scope, directory scope). */
   private ignored: FileTuple[] = [];
   private ignoredStale = false;
@@ -73,9 +75,14 @@ export class FileTracker implements vscode.Disposable {
    * Loads the git ignore rules of every workspace folder: .git/info/exclude, the .gitignore
    * files of the folders between the repository root and the workspace folder, and every
    * .gitignore inside the workspace folder (except in excluded locations).
+   *
+   * A folder with its own ".git" inside the workspace is a separate repository (e.g. a workspace
+   * repository whose .gitignore ignores "com_*", each com_* folder being a repository of its own):
+   * as in git, only its own rules apply to its files, never those of the enclosing repository.
    */
   private async loadIgnoreRules() {
     const roots: FileTracker['ignoreRoots'] = [];
+    this.repoCache.clear();
     if (vscode.workspace.getConfiguration('storm').get<boolean>('useIgnoreFiles', true)) {
       const ignoreCase = process.platform === 'win32' || process.platform === 'darwin';
       for (const wf of vscode.workspace.workspaceFolders ?? []) {
@@ -83,20 +90,33 @@ export class FileTracker implements vscode.Disposable {
         const folder = wf.uri.fsPath;
         const gitPath = findGitPath(folder);
         const root = gitPath ? path.dirname(gitPath) : folder;
-        const matcher = new IgnoreMatcher(ignoreCase);
-        const relTo = (dir: string) => path.relative(root, dir).replace(/\\/g, '/');
-        const exclude = gitPath ? gitInfoExclude(gitPath) : undefined;
-        if (exclude) matcher.add('', readText(exclude));
+        const repos = new Map<string, { root: string; matcher: IgnoreMatcher }>();
+        /** Matcher of a repository, created with its .git/info/exclude rules. */
+        const repoMatcher = (repoRoot: string) => {
+          let r = repos.get(normKey(repoRoot));
+          if (!r) {
+            r = { root: repoRoot, matcher: new IgnoreMatcher(ignoreCase) };
+            const exclude = gitInfoExclude(path.join(repoRoot, '.git'));
+            if (exclude) r.matcher.add('', readText(exclude));
+            repos.set(normKey(repoRoot), r);
+          }
+          return r;
+        };
+        const outer = repoMatcher(root);
         // .gitignore files above the workspace folder, up to the repository root
         if (root !== folder) {
           for (let d = path.dirname(folder); ; d = path.dirname(d)) {
-            matcher.add(relTo(d), readText(path.join(d, '.gitignore')));
+            outer.matcher.add(path.relative(root, d), readText(path.join(d, '.gitignore')));
             if (d === root || path.dirname(d) === d) break;
           }
         }
         const files = await vscode.workspace.findFiles(new vscode.RelativePattern(wf, '**/.gitignore'), this.excludeGlob, 5000);
-        for (const u of files) matcher.add(relTo(path.dirname(u.fsPath)), readText(u.fsPath));
-        if (matcher.size) roots.push({ folder: normKey(folder), root, matcher });
+        for (const u of files) {
+          const dir = path.dirname(u.fsPath);
+          const repo = repoMatcher(this.repoRootOf(dir, root));
+          repo.matcher.add(path.relative(repo.root, dir), readText(u.fsPath));
+        }
+        if ([...repos.values()].some((r) => r.matcher.size)) roots.push({ folder: normKey(folder), root, repos });
       }
       // nested workspace folders: the most specific one first
       roots.sort((a, b) => b.folder.length - a.folder.length);
@@ -104,12 +124,27 @@ export class FileTracker implements vscode.Disposable {
     this.ignoreRoots = roots;
   }
 
+  /** Nearest directory containing ".git" from `dir` up to `outerRoot` (the enclosing repository). */
+  private repoRootOf(dir: string, outerRoot: string): string {
+    const key = normKey(dir);
+    const cached = this.repoCache.get(key);
+    if (cached !== undefined) return cached;
+    let root: string;
+    if (key === normKey(outerRoot) || !key.startsWith(normKey(outerRoot) + '/')) root = outerRoot;
+    else if (fs.existsSync(path.join(dir, '.git'))) root = dir;
+    else root = this.repoRootOf(path.dirname(dir), outerRoot);
+    this.repoCache.set(key, root);
+    return root;
+  }
+
   /** Is the file ignored by git (and not kept by storm.libraryFolders / storm.alwaysIndex)? */
   private isIgnored(fsPath: string, rel: string): boolean {
     if (!this.ignoreRoots.length) return false;
     const key = normKey(fsPath);
     const r = this.ignoreRoots.find((x) => key === x.folder || key.startsWith(x.folder + '/'));
-    if (!r || !r.matcher.ignores(path.relative(r.root, fsPath))) return false;
+    if (!r) return false;
+    const repo = r.repos.get(normKey(this.repoRootOf(path.dirname(fsPath), r.root)));
+    if (!repo || !repo.matcher.ignores(path.relative(repo.root, fsPath))) return false;
     // Libraries (vendor…) and helper files stay indexed even when git ignores them.
     return !this.isLibrary(rel) && !this.alwaysIndexRes.some((re) => re.test(rel));
   }
@@ -157,7 +192,8 @@ export class FileTracker implements vscode.Disposable {
     this.ignored = ignored;
     this.ignoredStale = false;
     this.client.setFiles(files);
-    const rules = this.ignoreRoots.reduce((n, r) => n + r.matcher.size, 0);
+    let rules = 0;
+    for (const r of this.ignoreRoots) for (const repo of r.repos.values()) rules += repo.matcher.size;
     this.log.appendLine(`Listed ${files.length} files in ${Date.now() - t0} ms` + (rules ? ` (${ignored.length} more ignored by ${rules} git ignore rules)` : ''));
     // Unsaved documents
     for (const d of vscode.workspace.textDocuments) if (d.isDirty) this.pushOverride(d);

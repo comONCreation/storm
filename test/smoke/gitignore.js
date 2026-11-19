@@ -87,6 +87,18 @@ exports.run = async function () {
       if (after.includes('debug.log')) break;
     }
     expect('useIgnoreFiles off', after, ['_ide_helper.php', 'build/new.js', 'build/out.js', 'debug.log', 'dist/js/app.js', 'local.txt', 'src/a.php', 'sub/keep.log', 'sub/other.log', 'x.secret']);
+
+    // A nested repository ignored by the enclosing one ("inner/" in its .gitignore) keeps its
+    // files: only its own rules apply to them, as in git (e.g. a workspace repository ignoring com_*).
+    await vscode.workspace.getConfiguration('storm').update('useIgnoreFiles', true, vscode.ConfigurationTarget.Workspace);
+    fs.mkdirSync(path.join(root, 'inner', '.git', 'info'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'inner', '.git', 'info', 'exclude'), 'local-only.php\n');
+    fs.writeFileSync(path.join(root, 'inner', '.gitignore'), '*.tmp\n');
+    for (const f of ['x.php', 'y.tmp', 'local-only.php']) fs.writeFileSync(path.join(root, 'inner', f), 'needle');
+    fs.appendFileSync(path.join(root, '.gitignore'), 'inner/\n');
+    const inner = (r) => r.filter((x) => x.startsWith('inner/'));
+    expect('nested repository', inner(await poll(async () => (await ready(), find({})), (r) => r.includes('inner/x.php') && !r.includes('debug.log'))), ['inner/x.php']);
+    expect('nested repository, ignored files', inner(await find({ scope: 'scope', namedScope: 'ignored' })), ['inner/local-only.php', 'inner/x.php', 'inner/y.tmp']);
   } catch (e) {
     ok = false;
     log('ERROR ' + (e && e.stack ? e.stack : e));
